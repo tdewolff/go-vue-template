@@ -26,7 +26,7 @@ export default {
     isLoggedIn: state => {
       return !!state.jwt
     },
-    getProfile: state => {
+    getUser: state => {
       if (state.jwt) {
         return jwtDecode(state.jwt)
       }

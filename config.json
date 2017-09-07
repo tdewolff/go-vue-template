@@ -1,0 +1,12 @@
+{
+	"name": "APPNAME",
+	"host": "localhost:3000",
+	"hostDev": "localhost:8080",
+	"providers": {
+		"google": {
+			"id": "",
+			"secret": "",
+			"uri": "/auth/callback"
+		}
+	}
+}

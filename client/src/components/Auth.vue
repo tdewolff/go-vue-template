@@ -54,7 +54,7 @@ export default {
       return this.$store.getters.isLoggedIn
     },
     profile () {
-      return this.$store.getters.getProfile
+      return this.$store.getters.getUser
     }
   }
 }

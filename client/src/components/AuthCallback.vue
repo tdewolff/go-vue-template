@@ -11,7 +11,7 @@ export default {
     var state = encodeURIComponent(this.$route.query.state)
     var code = encodeURIComponent(this.$route.query.code)
     var sessionId = encodeURIComponent(localStorage.getItem('session_id'))
-    this.$http.get('http://localhost:3000/auth/jwt?state=' + state + '&code=' + code + '&session_id=' + sessionId)
+    this.$http.get('http://localhost:3000/auth/token?state=' + state + '&code=' + code + '&session_id=' + sessionId)
     .then(response => {
       this.$store.dispatch('login', response.data.jwt)
       this.$router.push(response.data.uri)
