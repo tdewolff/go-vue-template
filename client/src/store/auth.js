@@ -24,10 +24,23 @@ export default {
   },
   getters: {
     isLoggedIn: state => {
-      return !!state.jwt
-    },
-    getUser: state => {
       if (state.jwt) {
+        var claims = jwtDecode(state.jwt)
+        var now = Math.floor(Date.now() / 1000)
+        if (claims['exp'] > now) {
+          return true
+        }
+      }
+      return false
+    },
+    jwt: (state, getters) => {
+      if (getters.isLoggedIn) {
+        return state.jwt
+      }
+      return null
+    },
+    user: (state, getters) => {
+      if (getters.isLoggedIn) {
         return jwtDecode(state.jwt)
       }
       return null

@@ -1,7 +1,7 @@
 <template>
   <div class="api">
     <h1 class="ui header">API request</h1>
-    {{ msg }} {{ errors }}
+    {{ msg }}
   </div>
 </template>
 

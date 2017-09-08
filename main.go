@@ -20,7 +20,7 @@ import (
 
 var urlScheme = "http"
 var jwtSecret = []byte("RANDOMSECRET") // Change this!
-var jwtDuration = time.Hour * 24
+var jwtDuration = time.Minute * 30
 
 var db *sql.DB
 
@@ -38,8 +38,12 @@ func main() {
 	}
 
 	// Setup providers and endpoints for OAuth
-	a := auth.New(config.Name, &UserStore{}, jwtSecret, jwtDuration)
-	defer a.Close()
+	authHandler := auth.New(config.Name, &UserStore{}, jwtSecret, jwtDuration)
+	defer authHandler.Close()
+
+	if config.dev {
+		authHandler.SetCORS(config.clientURL)
+	}
 
 	for id, provider := range config.Providers {
 		callbackURL, err := url.Parse(config.clientURL)
@@ -48,21 +52,21 @@ func main() {
 		}
 		callbackURL.Path = path.Join(callbackURL.Path, provider.URI)
 
-		if ok := a.AddProviderByName(id, provider.ID, provider.Secret, callbackURL.String()); !ok {
-			log.Println("could not find OAuth provider:", id)
-		}
+		authHandler.AddProvider(id, provider.ID, provider.Secret, callbackURL.String())
 	}
 
-	if config.dev {
-		a.SetCORS(config.clientURL)
-	}
-
-	http.HandleFunc("/auth/list", a.AuthList)
-	http.HandleFunc("/auth/token", a.Token)
+	http.HandleFunc("/auth/list", authHandler.AuthList)
+	http.HandleFunc("/auth/token", authHandler.Token)
 
 	// Endpoints for the API and Vue client
-	http.Handle("/api/", a.MiddlewareHandler(api.New(db)))
-	http.Handle("/", http.FileServer(Vue("client/dist/")))
+	vueHandler := http.FileServer(Vue("client/dist/"))
+	apiHandler := api.New(db)
+	if config.dev {
+		apiHandler.SetCORS(config.clientURL)
+	}
+
+	http.Handle("/api/", authHandler.MiddlewareHandler(apiHandler))
+	http.Handle("/", vueHandler)
 
 	log.Fatal(s.ListenAndServe())
 }
@@ -113,7 +117,7 @@ func loadConfig() *Config {
 		dev:      dev,
 	}
 	if err := json.NewDecoder(configFile).Decode(config); err != nil {
-		panic(err)
+		panic("parsing config: " + err.Error())
 	}
 
 	serverURL, err := url.Parse(urlScheme + "://" + config.Host)
@@ -160,7 +164,7 @@ func initDatabase(config *Config) *sql.DB {
 type UserStore struct{}
 
 // Login logs in every user, creating a new account if it is a new user
-func (*UserStore) Login(user *auth.User) (bool, error) {
+func (*UserStore) Login(user *auth.User, provider, accessToken, refreshToken string) (bool, error) {
 	if err := db.QueryRow(`SELECT id, name FROM users WHERE email=?`, user.Email).Scan(&user.ID, &user.Name); err != nil && err != sql.ErrNoRows {
 		return false, err
 	} else if err == sql.ErrNoRows {
@@ -175,11 +179,17 @@ func (*UserStore) Login(user *auth.User) (bool, error) {
 			return false, err
 		}
 	}
+
+	_, err := db.Exec(`INSERT OR REPLACE INTO social_tokens (user_id, provider, access_token, refresh_token) VALUES (?, ?, ?, ?)`, user.ID, provider, accessToken, refreshToken)
+	if err != nil {
+		return false, err
+	}
 	return true, nil
 }
 
 func (*UserStore) Validate(user *auth.User) (bool, error) {
-	if err := db.QueryRow(`SELECT id FROM users WHERE id=? AND email=?`, user.ID, user.Email).Scan(); err != nil && err != sql.ErrNoRows {
+	var id int
+	if err := db.QueryRow(`SELECT id FROM users WHERE id=? AND email=?`, user.ID, user.Email).Scan(&id); err != nil && err != sql.ErrNoRows {
 		return false, err
 	} else if err == sql.ErrNoRows {
 		return false, nil

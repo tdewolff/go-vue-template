@@ -20,9 +20,8 @@ Vue.axios.interceptors.request.use((request) => {
   if (process.env.NODE_ENV === 'development') {
     console.log('Request Interceptor: ' + JSON.stringify(request))
   }
-  var jwt = window.localStorage.getItem('jwt')
-  if (jwt) {
-    request.headers['Authorization'] = jwt
+  if (store.getters.isLoggedIn) {
+    request.headers['authorization'] = store.getters.jwt
   }
   return request
 })
@@ -31,7 +30,15 @@ Vue.axios.interceptors.response.use((response) => {
   if (process.env.NODE_ENV === 'development') {
     console.log('Response Interceptor: ' + JSON.stringify(response))
   }
+  if (response.headers['set-authorization']) {
+    store.dispatch('login', response.headers['set-authorization'])
+  }
   return response
+}, function (error) {
+  if (error.response && error.response.status === 401) {
+    router.push('/auth?referer=' + encodeURIComponent(router.history.current.path))
+  }
+  return Promise.reject(error)
 })
 
 /* eslint-disable no-new */

@@ -14,10 +14,11 @@ export default {
     this.$http.get('http://localhost:3000/auth/token?state=' + state + '&code=' + code + '&session_id=' + sessionId)
     .then(response => {
       this.$store.dispatch('login', response.data.jwt)
-      this.$router.push(response.data.uri)
+      this.$router.push(response.data.referer)
     })
     .catch(e => {
       console.log(e)
+      // this.$router.push('/auth')
     })
   }
 }

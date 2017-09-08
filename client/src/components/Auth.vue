@@ -32,10 +32,17 @@ export default {
   methods: {
     loadSocialAuths () {
       if (!this.$store.getters.isLoggedIn) {
-        var referer = encodeURIComponent(this.$route.fullPath)
-        this.$http.get('http://localhost:3000/auth/list?referer_uri=' + referer)
+        var referer = this.$route.fullPath
+        if (this.$route.query.referer) {
+          referer = this.$route.query.referer
+        }
+
+        this.$http.get('http://localhost:3000/auth/list?referer=' + encodeURIComponent(referer))
         .then(response => {
           localStorage.setItem('session_id', response.data.sessionId)
+          response.data.providers.sort(function (a, b) {
+            return a.name.localeCompare(b.name)
+          })
           this.providers = response.data.providers
         })
         .catch(e => {
