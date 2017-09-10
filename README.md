@@ -15,6 +15,8 @@ This package will be updated as I go. Incomplete todo list:
 * Automatic OAuth token refresh
 * Able to add more scopes to OAuth providers
 * 401 Unauthorized vs 403 Forbidden in server responses; which is more appropriate? 401 if we want the user to retry logging in
+* Move client authorization code into a plugin
+* Use github.com/markbates/goth for OAuth providers
 
 ## Install
 Make sure you have the [Go compiler](https://golang.org/dl/) and [NPM](https://www.npmjs.com/get-npm) installed.

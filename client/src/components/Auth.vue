@@ -1,6 +1,7 @@
 <template>
   <div class="auth">
     <h1 class="ui header">Social login</h1>
+    <p v-if="$route.query.referer">Please log in first to continue.</p>
     <button v-if="loggedIn" class="ui button blue" @click="logout()">Logout</button>
     <div v-if="!loggedIn" class="ui stacked social-buttons">
       <a v-for="provider in providers" :href="provider.URL" :class="'ui labeled icon button fluid ' + provider.id"><i :class="'icon ' + provider.id"></i>{{ provider.name }}</a>
