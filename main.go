@@ -16,6 +16,8 @@ import (
 	flag "github.com/spf13/pflag"
 	"github.com/tdewolff/auth"
 	"github.com/tdewolff/go-vue-template/api"
+	"github.com/tdewolff/minify"
+	"github.com/tdewolff/minify/html"
 )
 
 var urlScheme = "http"
@@ -65,8 +67,11 @@ func main() {
 		apiHandler.SetCORS(config.clientURL)
 	}
 
-	http.Handle("/api/", authHandler.MiddlewareHandler(apiHandler))
-	http.Handle("/", vueHandler)
+	m := minify.New()
+	m.AddFunc("text/html", html.Minify)
+
+	http.Handle("/api/", authHandler.Middleware(apiHandler))
+	http.Handle("/", m.Middleware(vueHandler))
 
 	log.Fatal(s.ListenAndServe())
 }
@@ -154,7 +159,7 @@ func initDatabase(config *Config) *sql.DB {
 		panic(err)
 	}
 	if _, err = db.Exec(string(scheme)); err != nil {
-		panic(err)
+		panic("parsing scheme: " + err.Error())
 	}
 	return db
 }

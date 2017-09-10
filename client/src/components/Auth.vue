@@ -1,15 +1,9 @@
 <template>
   <div class="auth">
-    <h1 class="ui header">Login</h1>
-    <div class="ui buttons">
-      <button class="ui button blue" @click="login()">Login</button>
-      <button class="ui button blue" @click="register()">Register</button>
-      <button class="ui button blue" @click="logout()">Logout</button>
-    </div>
-    <div class="ui divider"></div>
     <h1 class="ui header">Social login</h1>
-    <div class="ui stacked social-buttons">
-      <a v-if="!loggedIn" v-for="provider in providers" :href="provider.URL" :class="'ui labeled icon button fluid ' + provider.id"><i :class="'icon ' + provider.id"></i>{{ provider.name }}</a>
+    <button v-if="loggedIn" class="ui button blue" @click="logout()">Logout</button>
+    <div v-if="!loggedIn" class="ui stacked social-buttons">
+      <a v-for="provider in providers" :href="provider.URL" :class="'ui labeled icon button fluid ' + provider.id"><i :class="'icon ' + provider.id"></i>{{ provider.name }}</a>
     </div>
     {{ profile }}
   </div>
