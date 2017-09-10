@@ -63,6 +63,7 @@ For detailed explanation on how things work at the client, checkout the [guide](
 * Set name and host in config.json
 * Set title in client/index.html
 * Set JWT secret in main.go
+* Add social login client IDs and secrets to config.json
 * Create your database scheme in scheme.sql
 * Develop your API server and client interface
 
