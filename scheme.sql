@@ -1,15 +1,13 @@
 CREATE TABLE IF NOT EXISTS users (
-	id INTEGER NOT NULL,
+	id INTEGER NOT NULL PRIMARY KEY,
 	name TEXT NOT NULL,
-	email TEXT NOT NULL,
-	PRIMARY KEY (id)
+	email TEXT NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS social_tokens (
-	id INTEGER NOT NULL,
+	id INTEGER NOT NULL PRIMARY KEY,
 	user_id INTEGER NOT NULL,
 	provider TEXT NOT NULL,
-	access_token TEXT NOT NULL,
-	refresh_token TEXT,
-	PRIMARY KEY (id, user_id, provider)
+	token TEXT NOT NULL,
+	UNIQUE (user_id, provider) ON CONFLICT REPLACE
 );

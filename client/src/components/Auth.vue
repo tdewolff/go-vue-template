@@ -1,12 +1,18 @@
 <template>
   <div class="auth">
     <h1 class="ui header">Social login</h1>
-    <p v-if="$route.query.referer">Please log in first to continue.</p>
-    <button v-if="loggedIn" class="ui button blue" @click="logout()">Logout</button>
-    <div v-if="!loggedIn" class="ui stacked social-buttons">
-      <a v-for="provider in providers" :href="provider.URL" :class="'ui labeled icon button fluid ' + provider.id"><i :class="'icon ' + provider.id"></i>{{ provider.name }}</a>
+    <div v-if="$auth.isLoggedIn()">
+      <button class="ui button blue" @click="logout()">Logout</button>
+      <br>
+      {{ profile }}
     </div>
-    {{ profile }}
+    <div v-if="!$auth.isLoggedIn()">
+      <p v-if="$route.query.referer">Please log in first to continue.</p>
+      <p v-if="$route.query.error">An error occurred, please try again.</p>
+      <div class="ui stacked social-buttons">
+        <a v-for="provider in providers" :href="provider.URL" :class="'ui labeled icon button fluid ' + provider.id"><i :class="'icon ' + provider.id"></i>{{ provider.name }}</a>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -20,43 +26,36 @@ export default {
   },
   mounted () {
     this.loadSocialAuths()
-    this.$store.watch(() => this.$store.getters.isLoggedIn, (loggedIn) => {
+    this.$watch(() => this.$auth.store.getters.jwt, (isLoggedIn) => {
       this.loadSocialAuths()
     })
   },
   methods: {
     loadSocialAuths () {
-      if (!this.$store.getters.isLoggedIn) {
+      if (!this.$auth.isLoggedIn()) {
         var referer = this.$route.fullPath
         if (this.$route.query.referer) {
           referer = this.$route.query.referer
         }
 
-        this.$http.get('http://localhost:3000/auth/list?referer=' + encodeURIComponent(referer))
-        .then(response => {
-          localStorage.setItem('session_id', response.data.sessionId)
-          response.data.providers.sort(function (a, b) {
-            return a.name.localeCompare(b.name)
-          })
-          this.providers = response.data.providers
-        })
-        .catch(e => {
+        this.$auth.getAuthURLs(referer)
+        .then(providers => {
+          this.providers = providers
+        }, e => {
           console.log(e)
         })
-      } else {
-        this.auths = []
       }
     },
     logout () {
-      this.$store.dispatch('logout')
+      this.$auth.logout()
     }
   },
   computed: {
     loggedIn () {
-      return this.$store.getters.isLoggedIn
+      return this.$auth.isLoggedIn()
     },
     profile () {
-      return this.$store.getters.getUser
+      return this.$auth.getUser()
     }
   }
 }
@@ -64,24 +63,6 @@ export default {
 
 <!-- Add "scoped" attribute to limit CSS to this component only -->
 <style scoped>
-h1, h2 {
-  font-weight: normal;
-}
-
-ul {
-  list-style-type: none;
-  padding: 0;
-}
-
-li {
-  display: inline-block;
-  margin: 0 10px;
-}
-
-a {
-  color: #42b983;
-}
-
 .auth {
   width: 30em;
   margin: 0 auto;

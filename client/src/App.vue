@@ -3,10 +3,10 @@
     <div class="ui fixed inverted menu">
       <div class="ui container">
         <router-link to="/" class="header item">
-          <img class="logo" src="./assets/accounting.svg">
-          Auth app
+          APPNAME
         </router-link>
         <router-link to="/auth" class="item">Login</router-link>
+        <router-link to="/page" class="item">API page</router-link>
       </div>
     </div>
     <div class="ui main text container">

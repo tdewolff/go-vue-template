@@ -18,6 +18,7 @@ import (
 	"github.com/tdewolff/go-vue-template/api"
 	"github.com/tdewolff/minify"
 	"github.com/tdewolff/minify/html"
+	"golang.org/x/oauth2"
 )
 
 var urlScheme = "http"
@@ -47,22 +48,22 @@ func main() {
 		authHandler.SetCORS(config.clientURL)
 	}
 
-	for id, provider := range config.Providers {
+	for name, provider := range config.Providers {
 		callbackURL, err := url.Parse(config.clientURL)
 		if err != nil {
 			panic(err)
 		}
 		callbackURL.Path = path.Join(callbackURL.Path, provider.URI)
 
-		authHandler.AddProvider(id, provider.ID, provider.Secret, callbackURL.String())
+		authHandler.AddProvider(name, provider.ID, provider.Secret, callbackURL.String(), provider.Scopes)
 	}
 
-	http.HandleFunc("/auth/list", authHandler.AuthList)
+	http.HandleFunc("/auth/list", authHandler.Auth)
 	http.HandleFunc("/auth/token", authHandler.Token)
 
 	// Endpoints for the API and Vue client
 	vueHandler := http.FileServer(Vue("client/dist/"))
-	apiHandler := api.New(db)
+	apiHandler := api.New(db, authHandler)
 	if config.dev {
 		apiHandler.SetCORS(config.clientURL)
 	}
@@ -77,9 +78,10 @@ func main() {
 }
 
 type ConfigProvider struct {
-	ID     string `json:"id"`
-	Secret string `json:"secret"`
-	URI    string `json:"uri"`
+	ID     string   `json:"id"`
+	Secret string   `json:"secret"`
+	URI    string   `json:"uri"`
+	Scopes []string `json:"scopes"`
 }
 
 type Config struct {
@@ -169,37 +171,49 @@ func initDatabase(config *Config) *sql.DB {
 type UserStore struct{}
 
 // Login logs in every user, creating a new account if it is a new user
-func (*UserStore) Login(user *auth.User, provider, accessToken, refreshToken string) (bool, error) {
+func (*UserStore) Login(user *auth.User, provider string, token *oauth2.Token) bool {
+	// Login or register
 	if err := db.QueryRow(`SELECT id, name FROM users WHERE email=?`, user.Email).Scan(&user.ID, &user.Name); err != nil && err != sql.ErrNoRows {
-		return false, err
+		log.Println("userstore login failed:", err)
+		return false
 	} else if err == sql.ErrNoRows {
 		res, err := db.Exec(`INSERT INTO users (name, email) VALUES (?, ?)`, user.Name, user.Email)
 		if err != nil {
-			return false, err
+			log.Println("userstore registration failed:", err)
+			return false
 		}
 
-		user.New = true
 		user.ID, err = res.LastInsertId()
 		if err != nil {
-			return false, err
+			log.Println("userstore registration failed:", err)
+			return false
 		}
 	}
 
-	_, err := db.Exec(`INSERT OR REPLACE INTO social_tokens (user_id, provider, access_token, refresh_token) VALUES (?, ?, ?, ?)`, user.ID, provider, accessToken, refreshToken)
+	// Save OAuth token
+	tokenBytes, err := json.Marshal(token)
 	if err != nil {
-		return false, err
+		log.Println("userstore token encoding failed:", err)
+		return false
 	}
-	return true, nil
+
+	_, err = db.Exec(`INSERT INTO social_tokens (user_id, provider, token) VALUES (?, ?, ?)`, user.ID, provider, string(tokenBytes))
+	if err != nil {
+		log.Println("userstore registration failed:", err)
+		return false
+	}
+	return true
 }
 
-func (*UserStore) Validate(user *auth.User) (bool, error) {
+func (*UserStore) Validate(user *auth.User) bool {
 	var id int
 	if err := db.QueryRow(`SELECT id FROM users WHERE id=? AND email=?`, user.ID, user.Email).Scan(&id); err != nil && err != sql.ErrNoRows {
-		return false, err
+		log.Println("userstore validation failed:", err)
+		return false
 	} else if err == sql.ErrNoRows {
-		return false, nil
+		return false
 	}
-	return true, nil
+	return true
 }
 
 ////////////////
