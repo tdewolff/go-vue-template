@@ -2,7 +2,7 @@
   <div class="auth">
     <h1 class="ui header">Social login</h1>
     <div v-if="$auth.isLoggedIn()">
-      <button class="ui button blue" @click="logout()">Logout</button>
+      <button class="ui button blue" @click="$auth.logout()">Logout</button>
       <br>
       {{ profile }}
     </div>
@@ -26,19 +26,19 @@ export default {
   },
   mounted () {
     this.loadSocialAuths()
-    this.$watch(() => this.$auth.store.getters.jwt, (isLoggedIn) => {
+    this.$watch(() => this.$auth.store.getters.user, (isLoggedIn) => {
       this.loadSocialAuths()
     })
   },
   methods: {
     loadSocialAuths () {
       if (!this.$auth.isLoggedIn()) {
-        var referer = this.$route.fullPath
-        if (this.$route.query.referer) {
-          referer = this.$route.query.referer
+        var referrer = this.$route.fullPath
+        if (this.$route.query.referrer) {
+          referrer = this.$route.query.referrer
         }
 
-        this.$auth.getAuthURLs(referer)
+        this.$auth.getAuthURLs(referrer)
         .then(providers => {
           this.providers = providers
         }, e => {

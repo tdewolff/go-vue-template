@@ -5,7 +5,8 @@
         <router-link to="/" class="header item">
           APPNAME
         </router-link>
-        <router-link to="/auth" class="item">Login</router-link>
+        <router-link v-if="!$auth.isLoggedIn()" to="/auth" class="item">Login</router-link>
+        <router-link v-if="$auth.isLoggedIn()" to="/auth" class="item">Logout</router-link>
         <router-link to="/page" class="item">API page</router-link>
       </div>
     </div>

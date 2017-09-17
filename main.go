@@ -1,7 +1,6 @@
 package main
 
 import (
-	"database/sql"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -12,26 +11,19 @@ import (
 	"path"
 	"time"
 
+	"github.com/gorilla/sessions"
+	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 	flag "github.com/spf13/pflag"
 	"github.com/tdewolff/auth"
 	"github.com/tdewolff/go-vue-template/api"
-	"github.com/tdewolff/minify"
-	"github.com/tdewolff/minify/html"
-	"golang.org/x/oauth2"
 )
 
-var urlScheme = "http"
-var jwtSecret = []byte("RANDOMSECRET") // Change this!
-var jwtDuration = time.Minute * 30
-
-var db *sql.DB
+const urlScheme = "http"
 
 func main() {
 	config := loadConfig()
-
-	db = initDatabase(config)
-	defer db.Close()
+	db := initDatabase(config)
 
 	s := &http.Server{
 		Addr:           ":" + config.port,
@@ -41,11 +33,11 @@ func main() {
 	}
 
 	// Setup providers and endpoints for OAuth
-	authHandler := auth.New(config.Name, &UserStore{}, jwtSecret, jwtDuration)
-	defer authHandler.Close()
+	sessionStore := sessions.NewCookieStore([]byte("something-very-secret"))
+	authHandler := auth.New(sessionStore, auth.NewDefaultUserStore(db.DB))
 
 	if config.dev {
-		authHandler.SetCORS(config.clientURL)
+		authHandler.SetDevURL(config.clientURL)
 	}
 
 	for name, provider := range config.Providers {
@@ -60,19 +52,17 @@ func main() {
 
 	http.HandleFunc("/auth/list", authHandler.Auth)
 	http.HandleFunc("/auth/token", authHandler.Token)
+	http.HandleFunc("/auth/logout", authHandler.Logout)
 
 	// Endpoints for the API and Vue client
 	vueHandler := http.FileServer(Vue("client/dist/"))
-	apiHandler := api.New(db, authHandler)
+	apiHandler := api.New(db)
 	if config.dev {
-		apiHandler.SetCORS(config.clientURL)
+		apiHandler.SetDevURL(config.clientURL)
 	}
 
-	m := minify.New()
-	m.AddFunc("text/html", html.Minify)
-
 	http.Handle("/api/", authHandler.Middleware(apiHandler))
-	http.Handle("/", m.Middleware(vueHandler))
+	http.Handle("/", vueHandler)
 
 	log.Fatal(s.ListenAndServe())
 }
@@ -144,11 +134,8 @@ func loadConfig() *Config {
 	return config
 }
 
-func initDatabase(config *Config) *sql.DB {
-	db, err := sql.Open("sqlite3", config.Database)
-	if err != nil {
-		panic(err)
-	}
+func initDatabase(config *Config) *sqlx.DB {
+	db := sqlx.MustConnect("sqlite3", config.Database)
 
 	schemeFile, err := os.Open(config.Scheme)
 	if err != nil {
@@ -160,60 +147,9 @@ func initDatabase(config *Config) *sql.DB {
 	if err != nil {
 		panic(err)
 	}
-	if _, err = db.Exec(string(scheme)); err != nil {
-		panic("parsing scheme: " + err.Error())
-	}
+
+	db.MustExec(string(scheme))
 	return db
-}
-
-////////////////
-
-type UserStore struct{}
-
-// Login logs in every user, creating a new account if it is a new user
-func (*UserStore) Login(user *auth.User, provider string, token *oauth2.Token) bool {
-	// Login or register
-	if err := db.QueryRow(`SELECT id, name FROM users WHERE email=?`, user.Email).Scan(&user.ID, &user.Name); err != nil && err != sql.ErrNoRows {
-		log.Println("userstore login failed:", err)
-		return false
-	} else if err == sql.ErrNoRows {
-		res, err := db.Exec(`INSERT INTO users (name, email) VALUES (?, ?)`, user.Name, user.Email)
-		if err != nil {
-			log.Println("userstore registration failed:", err)
-			return false
-		}
-
-		user.ID, err = res.LastInsertId()
-		if err != nil {
-			log.Println("userstore registration failed:", err)
-			return false
-		}
-	}
-
-	// Save OAuth token
-	tokenBytes, err := json.Marshal(token)
-	if err != nil {
-		log.Println("userstore token encoding failed:", err)
-		return false
-	}
-
-	_, err = db.Exec(`INSERT INTO social_tokens (user_id, provider, token) VALUES (?, ?, ?)`, user.ID, provider, string(tokenBytes))
-	if err != nil {
-		log.Println("userstore registration failed:", err)
-		return false
-	}
-	return true
-}
-
-func (*UserStore) Validate(user *auth.User) bool {
-	var id int
-	if err := db.QueryRow(`SELECT id FROM users WHERE id=? AND email=?`, user.ID, user.Email).Scan(&id); err != nil && err != sql.ErrNoRows {
-		log.Println("userstore validation failed:", err)
-		return false
-	} else if err == sql.ErrNoRows {
-		return false
-	}
-	return true
 }
 
 ////////////////

@@ -1,6 +1,6 @@
 <template>
-  <div class="authCallback">
-    <h1 class="ui header">Logging in...</h1>
+  <div class="ui active inverted dimmer">
+    <div class="ui large text loader">Logging in</div>
   </div>
 </template>
 
@@ -9,11 +9,20 @@ export default {
   name: 'authCallback',
   created () {
     this.$auth.login(this.$route.query.state, this.$route.query.code)
-    .then(referer => {
-      this.$router.push(referer)
+    .then(referrer => {
+      if (referrer === '') {
+        referrer = '/'
+      }
+      this.$router.push(referrer)
     }, e => {
       this.$router.push('/auth?error=' + encodeURIComponent(e.response.status))
     })
   }
 }
 </script>
+
+<style scoped>
+.ui.inverted.dimmer .ui.loader {
+  color: black;
+}
+</style>
