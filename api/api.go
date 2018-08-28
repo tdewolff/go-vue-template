@@ -11,8 +11,8 @@ import (
 )
 
 type API struct {
-	db     *sqlx.DB
-	devURL string
+	db   *sqlx.DB
+	cors string
 }
 
 func New(db *sqlx.DB) *API {
@@ -22,13 +22,13 @@ func New(db *sqlx.DB) *API {
 	}
 }
 
-func (api *API) SetDevURL(devURL string) {
-	api.devURL = devURL
+func (api *API) SetCORS(cors string) {
+	api.cors = cors
 }
 
 func (api *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	if api.devURL != "" {
-		w.Header().Set("Access-Control-Allow-Origin", api.devURL)
+	if api.cors != "" {
+		w.Header().Set("Access-Control-Allow-Origin", api.cors)
 		w.Header().Set("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE")
 		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
 	}

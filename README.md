@@ -26,7 +26,7 @@ Make sure you have the [Go compiler](https://golang.org/dl/) and [NPM](https://w
 go get github.com/tdewolff/go-vue-template
 
 # Download and install client NPM packages
-cd client
+cd web/
 npm install
 ```
 
@@ -35,16 +35,16 @@ npm install
 Server in dev mode will enable CORS headers from localhost:8080. Running the Vue client will automatically open the browser at http://localhost:8080/
 ``` bash
 # Start API server at :3000
-go-vue-template --dev
+go-vue-template
 
 # Start Vue client with hot-reloading at :8080
-cd client
+cd web/
 npm run dev
 ```
 
 ### Production mode
 ``` bash
-# Build the client files to client/dist/
+# Build the web files to web/dist/
 npm run build
 
 # Start the webserver at :3000
@@ -62,7 +62,7 @@ For detailed explanation on how things work at the client, checkout the [guide](
 
 ## Ready-up for your application
 
-* Set name and host in config.json
+* Rename config.json.dist to config.json and set name, host and client keys
 * Set title in client/index.html
 * Set JWT secret in main.go
 * Add social login client IDs and secrets to config.json

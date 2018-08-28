@@ -11,7 +11,6 @@ import (
 	"path"
 	"time"
 
-	"github.com/gorilla/sessions"
 	"github.com/jmoiron/sqlx"
 	_ "github.com/mattn/go-sqlite3"
 	flag "github.com/spf13/pflag"
@@ -26,44 +25,43 @@ func main() {
 	db := initDatabase(config)
 
 	s := &http.Server{
-		Addr:           ":" + config.port,
+		Addr:           config.Port,
 		ReadTimeout:    60 * time.Second,
 		WriteTimeout:   60 * time.Second,
 		MaxHeaderBytes: 1 << 16,
 	}
 
 	// Setup providers and endpoints for OAuth
-	sessionStore := sessions.NewCookieStore([]byte("something-very-secret"))
-	authHandler := auth.New(sessionStore, auth.NewDefaultUserStore(db.DB))
-
-	if config.dev {
-		authHandler.SetDevURL(config.clientURL)
-	}
+	userStore := NewUserStore(db.DB)
+	authHandler := auth.New(userStore)
+	authHandler.SetCORS(config.DevURL)
 
 	for name, provider := range config.Providers {
-		callbackURL, err := url.Parse(config.clientURL)
+		callbackURL, err := url.Parse(config.URL)
+		if config.DevURL != "" {
+			callbackURL, err = url.Parse(config.DevURL)
+		}
 		if err != nil {
 			panic(err)
 		}
 		callbackURL.Path = path.Join(callbackURL.Path, provider.URI)
 
+		log.Println("API callback:", name, callbackURL.String())
 		authHandler.AddProvider(name, provider.ID, provider.Secret, callbackURL.String(), provider.Scopes)
 	}
 
 	http.HandleFunc("/auth/list", authHandler.Auth)
 	http.HandleFunc("/auth/token", authHandler.Token)
-	http.HandleFunc("/auth/logout", authHandler.Logout)
 
 	// Endpoints for the API and Vue client
 	vueHandler := http.FileServer(Vue("client/dist/"))
 	apiHandler := api.New(db)
-	if config.dev {
-		apiHandler.SetDevURL(config.clientURL)
-	}
+	apiHandler.SetCORS(config.DevURL)
 
 	http.Handle("/api/", authHandler.Middleware(apiHandler))
 	http.Handle("/", vueHandler)
 
+	log.Println("Listening on", config.Port, "at", config.URL)
 	log.Fatal(s.ListenAndServe())
 }
 
@@ -75,21 +73,17 @@ type ConfigProvider struct {
 }
 
 type Config struct {
-	Name      string                    `json:"name"`
-	Host      string                    `json:"host"`
-	HostDev   string                    `json:"hostDev"`
-	Database  string                    `json:"database"`
-	Scheme    string                    `json:"scheme"`
-	Providers map[string]ConfigProvider `json:"providers"`
-
-	dev       bool
-	port      string
-	clientURL string
+	Name      string
+	Port      string
+	URL       string
+	DevURL    string
+	Database  string
+	Scheme    string
+	Providers map[string]ConfigProvider
 }
 
 func loadConfig() *Config {
 	configFilename := ""
-	dev := false
 
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [options] [input]\n\nOptions:\n", os.Args[0])
@@ -97,7 +91,6 @@ func loadConfig() *Config {
 		fmt.Fprintf(os.Stderr, "\nInput:\n  Files or directories, leave blank to use stdin\n")
 	}
 	flag.StringVarP(&configFilename, "config", "", "config.json", "Config filename")
-	flag.BoolVarP(&dev, "dev", "", false, "Development mode enables HostDev for client URLs and sets CORS headers")
 	flag.Parse()
 
 	configFile, err := os.Open(configFilename)
@@ -107,30 +100,14 @@ func loadConfig() *Config {
 	defer configFile.Close()
 
 	config := &Config{
-		Host:     "localhost:3000",
-		HostDev:  "localhost:8080",
+		Port:     ":3000",
+		URL:      "http://localhost:8080",
 		Database: "sqlite.db",
 		Scheme:   "scheme.sql",
-		dev:      dev,
 	}
 	if err := json.NewDecoder(configFile).Decode(config); err != nil {
 		panic("parsing config: " + err.Error())
 	}
-
-	serverURL, err := url.Parse(urlScheme + "://" + config.Host)
-	if err != nil {
-		panic(err)
-	}
-	config.port = serverURL.Port()
-	config.clientURL = serverURL.String()
-	if dev {
-		clientURL, err := url.Parse(urlScheme + "://" + config.HostDev)
-		if err != nil {
-			panic(err)
-		}
-		config.clientURL = clientURL.String()
-	}
-
 	return config
 }
 
