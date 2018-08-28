@@ -30,7 +30,7 @@ func (api *API) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	if api.cors != "" {
 		w.Header().Set("Access-Control-Allow-Origin", api.cors)
 		w.Header().Set("Access-Control-Allow-Methods", "GET,PUT,POST,DELETE")
-		w.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		w.Header().Add("Access-Control-Allow-Headers", "Content-Type")
 	}
 
 	if r.Method == "OPTIONS" {
