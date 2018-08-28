@@ -28,7 +28,7 @@ npm install
 
 ## Run
 ### Development mode
-Server in dev mode will enable CORS headers from localhost:8080. Running the Vue client will automatically open the browser at http://localhost:8080/
+Server with `DevURL` set in `config.json` will enable CORS headers from localhost:8080. Running the Vue client will automatically open the browser at http://localhost:8080/
 ``` bash
 # Start API server at :3000
 go-vue-template
@@ -39,6 +39,8 @@ npm run dev
 ```
 
 ### Production mode
+Remove `DevURL` from `config.json`, and run:
+
 ``` bash
 # Build the web files to web/dist/
 npm run build
@@ -47,7 +49,7 @@ npm run build
 go-vue-template
 ```
 
-Now navigate to http://localhost:3000/. You can change the port in the config.json file.
+Now navigate to http://localhost:3000/. You can change the port in the `config.json` file.
 
 ``` bash
 # Analyze filesizes
