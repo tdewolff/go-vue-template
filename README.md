@@ -4,6 +4,7 @@ Go-Vue-template is a project that serves as a template for future web applicatio
 
 * Vue for a Single Page Application frontend structure
 * OAuth2 authentication using social logins
+* Authentication using JWT
 * Semantic-UI for interface design
 * Webpack to bundle files
 
@@ -12,14 +13,9 @@ This package will be updated as I go. Incomplete todo list:
 * Use TLS for everything
 * Automatic logout using Vuex and timeout
 * Logout blacklists user at the server
-* Automatic OAuth token refresh
-* Able to add more scopes to OAuth providers
-* 401 Unauthorized vs 403 Forbidden in server responses; which is more appropriate? 401 if we want the user to retry logging in
-* Move client authorization code into a plugin
-* Use github.com/markbates/goth for OAuth providers
 
 ## Install
-Make sure you have the [Go compiler](https://golang.org/dl/) and [NPM](https://www.npmjs.com/get-npm) installed.
+Make sure you have the [Go compiler](https://golang.org/dl/) and [NPM](https://www.npmjs.com/get-npm) installed. Then issue:
 
 ``` bash
 # Download and install this package
@@ -62,12 +58,11 @@ For detailed explanation on how things work at the client, checkout the [guide](
 
 ## Ready-up for your application
 
-* Rename config.json.dist to config.json and set name, host and client keys
-* Set title in client/index.html
-* Set JWT secret in main.go
+* Rename config.json.dist to config.json and set name and URLs
 * Add social login client IDs and secrets to config.json
 * Create your database scheme in scheme.sql
-* Develop your API server and client interface
+* Set title in web/index.html
+* Develop your API server and web interface
 
 ## License
 Released under the [MIT license](LICENSE.md).

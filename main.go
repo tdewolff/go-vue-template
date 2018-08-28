@@ -54,7 +54,7 @@ func main() {
 	http.HandleFunc("/auth/token", authHandler.Token)
 
 	// Endpoints for the API and Vue client
-	vueHandler := http.FileServer(Vue("client/dist/"))
+	vueHandler := http.FileServer(Vue("web/dist/"))
 	apiHandler := api.New(db)
 	apiHandler.SetCORS(config.DevURL)
 

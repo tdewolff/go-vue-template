@@ -1,7 +1,7 @@
 {
-  "name": "accounting",
+  "name": "go-vue-template",
   "version": "1.0.0",
-  "description": "A Vue.js project",
+  "description": "A Go and Vue.js template",
   "author": "Taco de Wolff <tacodewolff@gmail.com>",
   "private": true,
   "scripts": {
@@ -16,6 +16,7 @@
     "jquery": "^3.2.1",
     "jwt-decode": "^2.2.0",
     "semantic-ui-css": "^2.2.12",
+    "uglifyjs-webpack-plugin": "^1.0.0-beta.3",
     "vue": "^2.4.2",
     "vue-axios": "^2.0.2",
     "vue-router": "^2.7.0",
